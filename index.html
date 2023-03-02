@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Apa Bang?</title>
+    <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+    <script>
+        let globaldata, globaldataid = 0;
+    </script>
+    <style>
+        #btnAns {
+            background-color: white;
+            color: black;
+        }
+    </style>
+</head>
+<body>
+    <h1 id="loading">Loading Bentar!!!!</h1>
+    <h1 style="text-align: center;" id="nomorsoal">Soal Nomor 1 (1/155)</h1>
+    <form id="form-1-1">
+        <div id="data">
+        </div>
+    </form>
+    <form id="form-all" hidden>
+        <!-- Ini Dapat Membuat CPU Menjadi 100%-->
+        <div id="datapdf">
+        </div>
+    </form>
+    <script>
+        function strip(html){
+            let doc = new DOMParser().parseFromString(html, 'text/html');
+            return doc.body.textContent || "";
+        }
+        function ClickButton(btn)
+        {
+            document.querySelectorAll('#btnAns').forEach(function (btn) {
+                btn.style.backgroundColor = "white";
+                btn.removeAttribute("checked");
+            });
+            btn.setAttribute("checked", "true");
+            btn.style.backgroundColor = "green";
+            globaldata[globaldataid].mdsr = strip(globaldata[globaldataid].options[btn.getAttribute("opsi")].answer); // Used for PDF Only
+            globaldata[globaldataid].anslcl = btn.getAttribute("opsi");
+        }
+        axios.get('https://raw.githubusercontent.com/GetherAround/Y/main/y')
+        .then(function (response) {
+            // handle success
+            document.getElementById("loading").hidden = true;
+            
+            globaldata = response.data.soal;
+            for(let i = 0; i < globaldata.length; i++)
+            {
+                globaldata[i].anslcl = "X";
+                globaldata[i].mdsr = "Unknown";
+            }
+
+            document.getElementById("data").innerHTML = `
+                <h1>${globaldata[globaldataid].soal}</h1>
+            `;
+            for(let i = 0; i < globaldata[globaldataid].options.length; i++) {
+                document.getElementById("data").innerHTML += `
+                    <input type="button" id="btnAns" onclick="ClickButton(this);" opsi="${i}" soal="${globaldataid}">${strip(globaldata[globaldataid].options[i].answer)}</a><br/>
+                `;
+            }
+        })
+        function next()
+        {
+            if(globaldataid < globaldata.length - 1)
+            {
+                globaldataid++;
+                document.getElementById("data").innerHTML = `
+                    <h1>${globaldata[globaldataid].soal}</h1>
+                `;
+                for(let i = 0; i < globaldata[globaldataid].options.length; i++) {
+                    document.getElementById("data").innerHTML += `
+                        <input type="button" id="btnAns" onclick="ClickButton(this);" opsi="${i}" soal="${globaldataid}">${strip(globaldata[globaldataid].options[i].answer)}</a><br/>
+                    `;
+                }
+
+                document.getElementById("nomorsoal").innerHTML = `Soal Nomor ${globaldataid + 1} (${globaldataid + 1}/${globaldata.length}`;
+
+                let req = globaldata[globaldataid].anslcl;
+                if(req !== "X")
+                    ClickButton(document.querySelectorAll('[opsi="'+req+'"]')[0]);
+            }
+        }
+
+        function previous()
+        {
+            if(globaldataid > 0)
+            {
+                globaldataid--;
+                document.getElementById("data").innerHTML = `
+                    <h1>${globaldata[globaldataid].soal}</h1>
+                `;
+                for(let i = 0; i < globaldata[globaldataid].options.length; i++) {
+                    document.getElementById("data").innerHTML += `
+                        <input type="button" id="btnAns" onclick="ClickButton(this);" opsi="${i}" soal="${globaldataid}">${strip(globaldata[globaldataid].options[i].answer)}</a><br/>
+                    `;
+
+                }
+
+                document.getElementById("nomorsoal").innerHTML = `Soal Nomor ${globaldataid + 1} (${globaldataid + 1}/${globaldata.length})`;
+
+                let req = globaldata[globaldataid].anslcl;
+                if(req !== "X")
+                    ClickButton(document.querySelectorAll('[opsi="'+req+'"]')[0]);
+            }
+        }
+
+        function toPDF()
+        {
+            document.getElementById("nomorsoal").hidden = true;
+            document.getElementById("form-all").hidden = false;
+            document.getElementById("form-1-1").hidden = true;
+            document.getElementById("control-panel").hidden = true;
+            for(let j = 0; j < globaldata.length; j++)
+            {
+                document.getElementById("datapdf").innerHTML += `
+                    <h1 style="text-align: center;">Soal Nomor ${j+1}</h1>
+                `;
+
+                document.getElementById("datapdf").innerHTML += `
+                    <h1 style="text-align: center;">${globaldata[j].soal}</h1>
+                `;
+
+                if(globaldata[j].mdsr == "Unknown")
+                {
+                    // We Add ALL Options to text
+                    globaldata[j].mdsr = "";
+                    for(let l = 0; l < globaldata[j].options.length; l++)
+                    {
+                        globaldata[j].mdsr += String.fromCharCode(65+l)+". "+globaldata[j].options[l].answer;
+                    }
+                }
+
+                document.getElementById("datapdf").innerHTML += `
+                <h2 style="backgroundColor:green;">${globaldata[j].mdsr || "Not Answered Yet!"}</a><br/>
+                `
+            }
+            window.print();
+        }
+    </script>
+    <br>
+    <br>
+    <div id="control-panel" style="margin: auto; width: 50%; border: 3px solid green; padding: 10px; text-align: center;">
+        <button onclick="previous()">PREVIOUS!</button>
+        <button onclick="toPDF()">Convert To PDF</button>
+        <button onclick="next()">NEXT!</button>
+    </div>
+</body>
+</html>
